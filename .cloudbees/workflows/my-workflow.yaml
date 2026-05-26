@@ -33,6 +33,9 @@ jobs:
         name: Run Snyk Sast Scan
       - with:
           path: gosec-count
+          provider: github
+          repository: https://github.com/fintech-bank-1/gosec-count
+          ref: main
         uses: cloudbees-io/checkout@v1
         name: Chekout Component 2
       - with:
