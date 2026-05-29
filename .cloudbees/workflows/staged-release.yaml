@@ -88,12 +88,11 @@ jobs:
         id: snyk-sast-scan
   policy-check-release-readiness:
     needs: checkout-and-sast-scan
-    steps:
-      - with:
-          policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
-          input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
-        uses: cloudbees-io/policy-utils/evaluate-policy@v0.1
-        name: policy-evaluation
+    uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@hkanakaraj-patch-1-1
+    with:
+      policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
+      input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
+    secrets: inherit
   trivy-security-scan:
     steps:
       - uses: docker://alpine:3.20
