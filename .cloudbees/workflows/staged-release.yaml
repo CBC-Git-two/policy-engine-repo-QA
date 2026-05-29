@@ -12,9 +12,9 @@ metadata:
         - quality-gate-check
         - update-jira-status
         - checkout-and-sast-scan
+        - policy-check-release-readiness
         - trivy-security-scan
         - approval
-        - policy-check-release-readiness
     - name: Quality Assurance
       jobs:
         - helm-deploy
@@ -87,11 +87,11 @@ jobs:
         name: Run Snyk Sast Scan
         id: snyk-sast-scan
   trivy-security-scan:
-    needs: checkout-and-sast-scan
     steps:
       - uses: docker://alpine:3.20
         run: |
           echo "Policy Subject: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}"
+    needs: policy-check-release-readiness
   approval:
     needs:
       - create-release-ticket
@@ -108,32 +108,30 @@ jobs:
       approvers: release-managers
       notifyAllEligibleUsers: false
   policy-check-release-readiness:
-    needs:
-      - approval
+    needs: checkout-and-sast-scan
     steps:
-      - uses: docker://alpine:3.20
-        run: echo "Evaluating policies - Security Scan Results (BLOCK), Critical CVE (PAUSE & NOTIFY), SBOM Generation (BLOCK)"
+      - with:
+          policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
+          input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
+        uses: cloudbees-io/policy-utils/evaluate-policy/workflow.yml@v0.1
+        name: policy-evaluation
   helm-deploy:
-    needs:
-      - policy-check-release-readiness
+    needs: approval
     steps:
       - uses: docker://alpine:3.20
         run: echo "Deploying via Helm to QA environment"
   unify-fm:
-    needs:
-      - policy-check-release-readiness
+    needs: approval
     steps:
       - uses: docker://alpine:3.20
         run: echo "Running Unify FM checks"
   playwright-e2e-tests:
-    needs:
-      - policy-check-release-readiness
+    needs: approval
     steps:
       - uses: docker://alpine:3.20
         run: echo "Running Playwright E2E tests"
   performance-tests:
-    needs:
-      - policy-check-release-readiness
+    needs: approval
     steps:
       - uses: docker://alpine:3.20
         run: echo "Running performance tests"
