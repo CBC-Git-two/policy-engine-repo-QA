@@ -117,6 +117,10 @@ jobs:
         uses: cloudbees-io/trivy-plugin@CBP-45234
         name: trivy-scan
         id: trivy-scan
+      - name: Print Trivy Policy Subject
+        uses: docker://alpine:3.20
+        run: |
+          echo "Policy Subject: ${{ steps.trivy-scan.outputs.policy-subject }}"
   policy-check-container-release-readiness:
     needs: trivy-security-scan
     uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
