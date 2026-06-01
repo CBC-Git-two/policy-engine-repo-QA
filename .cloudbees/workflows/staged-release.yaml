@@ -14,6 +14,7 @@ metadata:
         - checkout-and-sast-scan
         - policy-check-release-readiness
         - trivy-security-scan
+        - policy-check-container-release-readiness
         - approval
     - name: Quality Assurance
       jobs:
@@ -56,6 +57,7 @@ jobs:
       - uses: docker://alpine:3.20
         run: echo "Updating JIRA status"
   checkout-and-sast-scan:
+    needs: update-jira-status
     outputs:
       policy-subject: ${{ steps.snyk-sast-scan.outputs.policy-subject }}
     steps:
@@ -96,6 +98,31 @@ jobs:
     with:
       policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
       input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
+    secrets: inherit
+  trivy-security-scan:
+    needs: policy-check-release-readiness
+    outputs:
+      policy-subject: ${{ steps.trivy-scan.outputs.policy-subject }}
+    steps:
+      - with:
+          url: ${{ vars.JFROG_URL }}
+          username: ${{ vars.JFROG_ACTIONS_USERNAME }}
+          password: ${{ secrets.JFROG_ACTIONS_PASSWORD }}
+          file-path: /cloudbees/workspace/golang-alpine.tar
+          artifactory-path: test-generic-repo/jfrogtest/golang-alpine.tar
+        uses: cloudbees-io/jfrog-artifactory-download-file@v1
+        name: jfrog-actions-workflow-download
+      - with:
+          binary-tar-path: /cloudbees/workspace/golang-alpine.tar
+        uses: cloudbees-io/trivy-plugin@CBP-45234
+        name: trivy-scan
+        id: trivy-scan
+  policy-check-container-release-readiness:
+    needs: trivy-security-scan
+    uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
+    with:
+      policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
+      input-data: ${{ needs.trivy-security-scan.outputs.policy-subject }}
     secrets: inherit
   approval:
     needs:
@@ -204,18 +231,3 @@ jobs:
     steps:
       - uses: docker://alpine:3.20
         run: echo "Evaluating policies - Production deployment complete"
-  trivy-security-scan:
-    needs: policy-check-release-readiness
-    steps:
-      - with:
-          url: ${{ vars.JFROG_URL }}
-          username: ${{ vars.JFROG_ACTIONS_USERNAME }}
-          password: ${{ secrets.JFROG_ACTIONS_PASSWORD }}
-          file-path: /cloudbees/workspace/golang-alpine.tar
-          artifactory-path: test-generic-repo/jfrogtest/golang-alpine.tar
-        uses: cloudbees-io/jfrog-artifactory-download-file@v1
-        name: jfrog-actions-workflow-download
-      - with:
-          binary-tar-path: /cloudbees/workspace/golang-alpine.tar
-        uses: cloudbees-io/trivy-plugin@CBP-45234
-        name: trivy-scan
