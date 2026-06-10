@@ -7,20 +7,12 @@ metadata:
   stages/v1alpha1:
     - name: Release Readiness
       jobs:
-        - create-release-ticket
-        - gather-evidence
-        - quality-gate-check
-        - update-jira-status
         - checkout-and-sast-scan
         - policy-check-release-readiness
         - trivy-security-scan
         - policy-check-container-release-readiness
-        - approval
     - name: Quality Assurance
       jobs:
-        - helm-deploy
-        - unify-fm
-        - playwright-e2e-tests
         - performance-tests
         - policy-check-qa
     - name: Staging
@@ -39,25 +31,7 @@ metadata:
         - gradual-feature-rollout
         - policy-check-production
 jobs:
-  create-release-ticket:
-    steps:
-      - run: echo "Creating release ticket"
-        uses: docker://golang:1.26.3
-        shell: sh
-  gather-evidence:
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Gathering release evidence"
-  quality-gate-check:
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Running quality gate check"
-  update-jira-status:
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Updating JIRA status"
   checkout-and-sast-scan:
-    needs: update-jira-status
     outputs:
       policy-subject: ${{ steps.snyk-sast-scan.outputs.policy-subject }}
     steps:
@@ -96,7 +70,7 @@ jobs:
     needs: checkout-and-sast-scan
     uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
     with:
-      policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
+      policy-id: cd130689-1f74-44d5-93f2-ce30ac3a87b0
       input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
     secrets: inherit
   trivy-security-scan:
@@ -125,51 +99,24 @@ jobs:
     needs: trivy-security-scan
     uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
     with:
-      policy-id: 33f56ece-598b-4bf5-ba48-f050e9da7914
+      policy-id: bc823709-b47f-4484-b791-b603ac66a0cf
       input-data: ${{ needs.trivy-security-scan.outputs.policy-subject }}
     secrets: inherit
-  approval:
+  performance-tests:
     needs:
-      - create-release-ticket
-      - gather-evidence
-      - quality-gate-check
-      - update-jira-status
       - checkout-and-sast-scan
       - policy-check-release-readiness
       - trivy-security-scan
       - policy-check-container-release-readiness
-    timeout-minutes: 4320
-    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
-    with:
-      instructions: Approve release readiness to proceed to QA.
-      disallowLaunchByUser: false
-      approvers: release-managers
-      notifyAllEligibleUsers: false
-  helm-deploy:
-    needs: approval
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Deploying via Helm to QA environment"
-  unify-fm:
-    needs: approval
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Running Unify FM checks"
-  playwright-e2e-tests:
-    needs: approval
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Running Playwright E2E tests"
-  performance-tests:
-    needs: approval
     steps:
       - uses: docker://alpine:3.20
         run: echo "Running performance tests"
   policy-check-qa:
     needs:
-      - helm-deploy
-      - unify-fm
-      - playwright-e2e-tests
+      - checkout-and-sast-scan
+      - policy-check-release-readiness
+      - trivy-security-scan
+      - policy-check-container-release-readiness
       - performance-tests
     steps:
       - uses: docker://alpine:3.20
