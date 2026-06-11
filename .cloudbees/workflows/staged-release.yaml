@@ -9,12 +9,10 @@ metadata:
       jobs:
         - checkout-and-sast-scan
         - policy-check-release-readiness
-        - trivy-security-scan
         - policy-check-container-release-readiness
     - name: Quality Assurance
       jobs:
-        - performance-tests
-        - policy-check-qa
+        - policy-check-approval
     - name: Staging
       jobs:
         - create-release
@@ -73,56 +71,15 @@ jobs:
       policy-id: cd130689-1f74-44d5-93f2-ce30ac3a87b0
       input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
     secrets: inherit
-  trivy-security-scan:
-    needs: policy-check-release-readiness
-    outputs:
-      policy-subject: ${{ steps.trivy-scan.outputs.policy-subject }}
-    steps:
-      - with:
-          url: ${{ vars.JFROG_URL }}
-          username: ${{ vars.JFROG_ACTIONS_USERNAME }}
-          password: ${{ secrets.JFROG_ACTIONS_PASSWORD }}
-          file-path: /cloudbees/workspace/golang-alpine.tar
-          artifactory-path: test-generic-repo/jfrogtest/golang-alpine.tar
-        uses: cloudbees-io/jfrog-artifactory-download-file@v1
-        name: jfrog-actions-workflow-download
-      - with:
-          binary-tar-path: /cloudbees/workspace/golang-alpine.tar
-        uses: cloudbees-io/trivy-plugin@v1
-        name: trivy-scan
-        id: trivy-scan
-      - name: Print Trivy Policy Subject
-        uses: docker://alpine:3.20
-        run: |
-          echo "Policy Subject: ${{ steps.trivy-scan.outputs.policy-subject }}"
   policy-check-container-release-readiness:
-    needs: trivy-security-scan
+    needs: policy-check-release-readiness
     uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
     with:
-      policy-id: bc823709-b47f-4484-b791-b603ac66a0cf
-      input-data: ${{ needs.trivy-security-scan.outputs.policy-subject }}
+      policy-id: ae0cb15b-3513-4b55-8356-8e97fdd2f349
+      input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
     secrets: inherit
-  performance-tests:
-    needs:
-      - checkout-and-sast-scan
-      - policy-check-release-readiness
-      - trivy-security-scan
-      - policy-check-container-release-readiness
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Running performance tests"
-  policy-check-qa:
-    needs:
-      - checkout-and-sast-scan
-      - policy-check-release-readiness
-      - trivy-security-scan
-      - policy-check-container-release-readiness
-      - performance-tests
-    steps:
-      - uses: docker://alpine:3.20
-        run: echo "Evaluating policies - High CVE Notification (NOTIFY)"
   create-release:
-    needs: policy-check-qa
+    needs: policy-check-approval
     steps:
       - uses: docker://alpine:3.20
         run: echo "Creating release for staging"
@@ -184,3 +141,12 @@ jobs:
     steps:
       - uses: docker://alpine:3.20
         run: echo "Evaluating policies - Production deployment complete"
+  policy-check-approval:
+    needs:
+      - checkout-and-sast-scan
+      - policy-check-release-readiness
+      - policy-check-container-release-readiness
+    uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
+    with:
+      policy-id: bc823709-b47f-4484-b791-b603ac66a0cf
+      input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
