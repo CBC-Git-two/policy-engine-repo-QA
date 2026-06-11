@@ -72,7 +72,9 @@ jobs:
       input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
     secrets: inherit
   policy-check-container-release-readiness:
-    needs: policy-check-release-readiness
+    needs:
+      - policy-check-release-readiness
+      - checkout-and-sast-scan
     uses: cloudbees-io/policy-utils/.cloudbees/workflows/action.yaml@main
     with:
       policy-id: ae0cb15b-3513-4b55-8356-8e97fdd2f349
