@@ -68,7 +68,7 @@ jobs:
     with:
       checkpoint-type: stage
       input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
-      checkpoint-position: within
+      checkpoint-position: exit
       checkpoint-name: Release Readiness
     secrets: inherit
   create-release:
@@ -137,5 +137,5 @@ jobs:
     with:
       checkpoint-type: stage
       input-data: ${{ needs.checkout-and-sast-scan.outputs.policy-subject }}
-      checkpoint-position: within
+      checkpoint-position: exit
       checkpoint-name: Quality Assurance
