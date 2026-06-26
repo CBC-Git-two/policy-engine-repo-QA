@@ -29,7 +29,7 @@ metadata:
 jobs:
   checkout-and-sast-scan:
     outputs:
-      policy-subject: ${{ steps.snyk-sast-scan.outputs.policy-subject }}
+      policy-subject: ${{ steps.step3.snyk-sast-scan.outputs.policy-subject }}
     steps:
       - with:
           provider: github
