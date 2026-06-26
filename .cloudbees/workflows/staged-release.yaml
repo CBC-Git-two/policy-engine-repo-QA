@@ -29,7 +29,7 @@ metadata:
 jobs:
   checkout-and-sast-scan:
     outputs:
-      policy-subject: ${{ steps.step3.snyk-sast-scan.outputs.policy-subject }}
+      policy-subject: ${{ steps.step1.outputs.policy-subject }}
     steps:
       - with:
           provider: github
@@ -45,7 +45,7 @@ jobs:
         uses: cloudbees-io/snyk-sast-plugin@v1
         name: Run Snyk Sast Scan
       - run: |
-          echo "Policy Subject: ${{ steps.snyk-sast-scan.outputs.policy-subject }}"
+          echo "Policy Subject: ${{ steps.step1.outputs.policy-subject }}"
         uses: docker://alpine:3.20
         name: Print Policy Subject
   policy-check-release-readiness:
