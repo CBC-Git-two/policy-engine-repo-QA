@@ -19,9 +19,8 @@ jobs:
     steps:
       - with:
           provider: github
-          repository: https://github.com/Dev-Org-Hari/webrtc-go
+          repository: https://github.com/CBC-Git-two/auto-pe-container-scan-repo
           ref: main
-          path: webrtc-repo
         uses: cloudbees-io/checkout@v1
         name: Checkout Component 1
       - with:
@@ -35,14 +34,6 @@ jobs:
         uses: docker://alpine:3.20
         run: |
           echo "Policy Subject: ${{ steps.snyk-sast-scan.outputs.policy-subject }}"
-      - with:
-          url: ${{ vars.JFROG_URL }}
-          username: ${{ vars.JFROG_ACTIONS_USERNAME }}
-          password: ${{ secrets.JFROG_ACTIONS_PASSWORD }}
-          file-path: /cloudbees/workspace/golang-alpine.tar
-          artifactory-path: test-generic-repo/jfrogtest/golang-alpine.tar
-        uses: cloudbees-io/jfrog-artifactory-download-file@v1
-        name: jfrog-actions-workflow-download
       - with:
           binary-tar-path: /cloudbees/workspace/golang-alpine.tar
         uses: cloudbees-io/trivy-plugin@v1
